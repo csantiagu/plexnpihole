@@ -1,0 +1,44 @@
+- name: Create directories for Pi-hole
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    recurse: yes
+  loop:
+    - /home/{{ ansible_user }}/docker/pihole/etc-pihole
+    - /home/{{ ansible_user }}/docker/pihole/etc-dnsmasq.d
+
+- name: Deploy docker-compose for Pi-hole with macvlan
+  copy:
+    dest: /home/{{ ansible_user }}/docker/pihole/docker-compose.yml
+    content: |
+      version: '3.8'
+      services:
+        pihole:
+          container_name: pihole
+          image: pihole/pihole:latest
+          environment:
+            TZ: 'Europe/London'
+            WEBPASSWORD: 'securepassword'  # Change this!
+          volumes:
+            - ./etc-pihole:/etc/pihole
+            - ./etc-dnsmasq.d:/etc/dnsmasq.d
+          networks:
+            pihole_macvlan:
+              ipv4_address: 192.168.68.240
+          restart: unless-stopped
+
+      networks:
+        pihole_macvlan:
+          driver: macvlan
+          driver_opts:
+            parent: enp3s0
+          ipam:
+            config:
+              - subnet: "192.168.68.0/24"
+                gateway: "192.168.68.1"
+                ip_range: "192.168.68.240/28"
+
+- name: Bring up Pi-hole container with Docker Compose V2
+  community.docker.docker_compose_v2:
+    project_src: /home/{{ ansible_user }}/docker/pihole

@@ -1,0 +1,14 @@
+services:
+  plex:
+    image: plexinc/pms-docker
+    container_name: plex
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=Europe/London
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - ADVERTISE_IP=http://localhost:32400/
+    volumes:
+      - /opt/plex/config:/config
+      - /opt/plex/transcode:/transcode
+      - /opt/plex/media:/data
